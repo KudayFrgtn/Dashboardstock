@@ -129,7 +129,7 @@ tr.expanded .toko-name .chev{transform:rotate(90deg);}
 .hint-text{color:var(--ink-soft); font-style:italic; font-weight:500; font-family:'Inter'; font-size:12px;}
 
 .detail-row td{padding:0; background:#FBF9F4;}
-.detail-wrap{padding:12px 16px 16px 40px;}
+.detail-wrap{padding:14px 16px 18px 16px; width:100%; box-sizing:border-box;}
 table.sub{width:100%; border-collapse:collapse; font-size:11.8px;}
 table.sub thead th{text-align:right; padding:6px 10px; font-size:10px; text-transform:uppercase; color:var(--ink-soft); font-weight:700; border-bottom:1px solid var(--border);}
 table.sub thead th:first-child, table.sub thead th:nth-child(2){text-align:left;}
@@ -169,7 +169,7 @@ table.sub tbody tr:hover{background:#F5F0E4;}
 
 .empty-state{padding:50px 20px; text-align:center; color:var(--ink-soft);}
 
-.export-card{background:#FBF9F4; border-radius:8px;}
+.export-card{background:#FBF9F4; border-radius:8px; width:100%; box-sizing:border-box; padding:2px;}
 .export-toolbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;}
 .export-info{font-size:12px; color:var(--ink); font-weight:600;}
 .export-info .export-sub{color:var(--ink-soft); font-weight:500;}
@@ -312,7 +312,7 @@ table.sub tbody tr:hover{background:#F5F0E4;}
     </div>
   </div>
 
-  <div class="footnote">
+  <div class="footnote" style="display:none;">
     <b>Formula.</b> Sellout/Hari = (Total Sellout sebulan ÷ Jumlah Kunjungan dalam sebulan) × 70%. Day of Inventory (DOI) = Stock Akhir ÷ Sellout/Hari. Perhitungan yang sama berlaku untuk basis Rupiah (value), menggunakan Total Sellout Value dan Stock Akhir Value.
     <br><b>Kunjungan</b> dihitung dari jumlah hari unik toko tersebut dikunjungi selama Juni 2026 (kolom <code>DATE</code>), dan dipakai sebagai basis kunjungan untuk seluruh produk di toko tersebut pada bulan itu.
     <br><b>Stock Akhir</b> diambil dari <b>satu kunjungan terakhir</b> ke toko tersebut (1 Activity ID/kunjungan penuh), lalu dijumlahkan semua produk yang tercatat pada kunjungan itu. Produk yang pernah terjual bulan ini tapi tidak ikut dicek di kunjungan terakhir tidak dimasukkan ke Stock Akhir (karena stok terkininya tidak diketahui), meskipun sellout bulanannya tetap terhitung penuh untuk produk yang memang muncul di kunjungan terakhir.
@@ -370,7 +370,11 @@ function finalizeOutlet(key, name, meta, visits, productsRaw){
   const stockValFinal = anyStock ? stockValSum : null;
   const dqO = computeDoi(stockQtyFinal, sellQtySum, visits);
   const dvO = computeDoi(stockValFinal, sellValSum, visits);
+  const BRAND_ORDER = { 'Good Time': 0, 'Nyam Nyam': 1 };
   products.sort((a,b)=> {
+    const ao = BRAND_ORDER[a.sku] !== undefined ? BRAND_ORDER[a.sku] : 2;
+    const bo = BRAND_ORDER[b.sku] !== undefined ? BRAND_ORDER[b.sku] : 2;
+    if(ao !== bo) return ao - bo;
     const av = a.doiQty===null? -1 : (a.doiQty===Infinity?1e9:a.doiQty);
     const bv = b.doiQty===null? -1 : (b.doiQty===Infinity?1e9:b.doiQty);
     return av - bv;
@@ -416,20 +420,43 @@ function buildOutlets(raw){
 }
 
 let outlets = [];
+let state = { search:'', region:'', asm:'', rsm:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
 
-function populateFilterOptions(){
-  const fill = (selectId, field, placeholder) => {
-    const sel = document.getElementById(selectId);
-    sel.innerHTML = `<option value="">${placeholder}</option>`;
-    [...new Set(outlets.map(o=>o[field]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id')).forEach(v=>{
-      const opt = document.createElement('option'); opt.value=v; opt.textContent=v; sel.appendChild(opt);
-    });
-  };
-  fill('filterRegion', 'region', 'Semua Region');
-  fill('filterAsm', 'asm', 'Semua ASM');
-  fill('filterRsm', 'rsm', 'Semua RSM');
+function computeDistinct(list, field){
+  return [...new Set(list.map(o=>o[field]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id'));
 }
-populateFilterOptions();
+
+function fillSelect(id, options, placeholder, currentValue, onChangeState){
+  const sel = document.getElementById(id);
+  sel.innerHTML = `<option value="">${placeholder}</option>` + options.map(v=>`<option value="${v}">${v}</option>`).join('');
+  if(currentValue && options.includes(currentValue)){
+    sel.value = currentValue;
+  } else {
+    sel.value = '';
+    onChangeState('');
+  }
+}
+
+// Region / ASM / RSM constrain each other based on what actually co-occurs in the raw data:
+// picking a Region narrows the ASM/RSM lists to only those found in that Region (and vice versa).
+function refreshCascadingFilters(){
+  let baseForRegion = outlets;
+  if(state.asm) baseForRegion = baseForRegion.filter(o=>o.asm===state.asm);
+  if(state.rsm) baseForRegion = baseForRegion.filter(o=>o.rsm===state.rsm);
+
+  let baseForAsm = outlets;
+  if(state.region) baseForAsm = baseForAsm.filter(o=>o.region===state.region);
+  if(state.rsm) baseForAsm = baseForAsm.filter(o=>o.rsm===state.rsm);
+
+  let baseForRsm = outlets;
+  if(state.region) baseForRsm = baseForRsm.filter(o=>o.region===state.region);
+  if(state.asm) baseForRsm = baseForRsm.filter(o=>o.asm===state.asm);
+
+  fillSelect('filterRegion', computeDistinct(baseForRegion,'region'), 'Semua Region', state.region, v=>state.region=v);
+  fillSelect('filterAsm', computeDistinct(baseForAsm,'asm'), 'Semua ASM', state.asm, v=>state.asm=v);
+  fillSelect('filterRsm', computeDistinct(baseForRsm,'rsm'), 'Semua RSM', state.rsm, v=>state.rsm=v);
+}
+refreshCascadingFilters();
 
 function fmtInt(n){ if(n===null||n===undefined||!isFinite(n)) return '–'; return Math.round(n).toLocaleString('id-ID'); }
 function fmtRp(n){ if(n===null||n===undefined||!isFinite(n)) return '–'; return 'Rp' + Math.round(n).toLocaleString('id-ID'); }
@@ -448,8 +475,6 @@ function doiCell(doi, bracket){
   if(doi===null||doi===undefined) return '<span class="hint-text">Lihat Value Stock</span>';
   return `${fmtDoi(doi)} ${badgeHtml(bracket)}`;
 }
-
-let state = { search:'', region:'', asm:'', rsm:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
 
 function applyFilters(){
   let list = outlets;
@@ -718,9 +743,9 @@ document.getElementById('searchToko').addEventListener('input', (e)=>{
   clearTimeout(searchTimer);
   searchTimer = setTimeout(()=>{ state.search = e.target.value; state.page=1; renderTable(); }, 180);
 });
-document.getElementById('filterRegion').addEventListener('change', (e)=>{ state.region = e.target.value; state.page=1; renderTable(); });
-document.getElementById('filterAsm').addEventListener('change', (e)=>{ state.asm = e.target.value; state.page=1; renderTable(); });
-document.getElementById('filterRsm').addEventListener('change', (e)=>{ state.rsm = e.target.value; state.page=1; renderTable(); });
+document.getElementById('filterRegion').addEventListener('change', (e)=>{ state.region = e.target.value; state.page=1; refreshCascadingFilters(); renderTable(); });
+document.getElementById('filterAsm').addEventListener('change', (e)=>{ state.asm = e.target.value; state.page=1; refreshCascadingFilters(); renderTable(); });
+document.getElementById('filterRsm').addEventListener('change', (e)=>{ state.rsm = e.target.value; state.page=1; refreshCascadingFilters(); renderTable(); });
 document.getElementById('filterDoi').addEventListener('change', (e)=>{ state.doiFilter = e.target.value; state.page=1; renderTable(); });
 document.getElementById('metricSeg').addEventListener('click', (e)=>{
   const btn = e.target.closest('button'); if(!btn) return;
@@ -733,13 +758,11 @@ document.getElementById('metricSeg').addEventListener('click', (e)=>{
 document.getElementById('resetBtn').addEventListener('click', ()=>{
   state = { search:'', region:'', asm:'', rsm:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
   document.getElementById('searchToko').value='';
-  document.getElementById('filterRegion').value='';
-  document.getElementById('filterAsm').value='';
-  document.getElementById('filterRsm').value='';
   document.getElementById('filterDoi').value='';
   document.getElementById('pageSizeSel').value='50';
   document.querySelectorAll('#metricSeg button').forEach(b=>b.classList.remove('active'));
   document.querySelector('#metricSeg button[data-metric="qty"]').classList.add('active');
+  refreshCascadingFilters();
   renderTable();
 });
 document.getElementById('prevBtn').addEventListener('click', ()=>{ if(state.page>1){state.page--; renderTable();} });
@@ -897,17 +920,13 @@ async function handleExcelUpload(file){
 
     outlets = result.map(e => finalizeOutlet(e.key, e.name, e.meta, e.visits, e.productsRaw));
 
-    populateFilterOptions();
-
     state = { search:'', region:'', asm:'', rsm:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
     document.getElementById('searchToko').value='';
-    document.getElementById('filterRegion').value='';
-    document.getElementById('filterAsm').value='';
-    document.getElementById('filterRsm').value='';
     document.getElementById('filterDoi').value='';
     document.getElementById('pageSizeSel').value='50';
     document.querySelectorAll('#metricSeg button').forEach(b=>b.classList.remove('active'));
     document.querySelector('#metricSeg button[data-metric="qty"]').classList.add('active');
+    refreshCascadingFilters();
 
     document.getElementById('uploadDesc').textContent = `Data aktif: ${file.name} · ${outlets.length} toko · ${formatPeriodLabel(minDate, maxDate)}`;
 
