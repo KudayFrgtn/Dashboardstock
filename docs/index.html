@@ -109,11 +109,11 @@ table.data thead th{
   font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-soft); font-weight:700; cursor:pointer;
   white-space:nowrap; position:sticky; top:0;
 }
-table.data thead th:first-child, table.data thead th:nth-child(2), table.data thead th:nth-child(3){text-align:left;}
+table.data thead th:first-child, table.data thead th:nth-child(2), table.data thead th:nth-child(3), table.data thead th:nth-child(4){text-align:left;}
 table.data thead th .arrow{font-size:9px; opacity:.5; margin-left:3px;}
 table.data thead th.sorted .arrow{opacity:1; color:var(--amber);}
 table.data tbody td{padding:9px 12px; border-bottom:1px solid #EFEAE0; text-align:right; white-space:nowrap;}
-table.data tbody td:first-child, table.data tbody td:nth-child(2), table.data tbody td:nth-child(3){text-align:left;}
+table.data tbody td:first-child, table.data tbody td:nth-child(2), table.data tbody td:nth-child(3), table.data tbody td:nth-child(4){text-align:left;}
 table.data tbody tr.outlet-row{cursor:pointer;}
 table.data tbody tr.outlet-row:hover{background:#FBF7EE;}
 table.data tbody tr.outlet-row.expanded{background:#F7F1E1;}
@@ -169,6 +169,18 @@ table.sub tbody tr:hover{background:#F5F0E4;}
 
 .empty-state{padding:50px 20px; text-align:center; color:var(--ink-soft);}
 
+.export-card{background:#FBF9F4; border-radius:8px;}
+.export-toolbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;}
+.export-info{font-size:12px; color:var(--ink); font-weight:600;}
+.export-info .export-sub{color:var(--ink-soft); font-weight:500;}
+.export-actions{display:flex; gap:8px;}
+.export-btn{
+  border:1px solid var(--border); background:#fff; border-radius:6px; padding:6px 12px; font-size:11.5px; font-weight:700;
+  cursor:pointer; color:var(--navy); font-family:'Inter';
+}
+.export-btn:hover{border-color:var(--amber); color:var(--amber);}
+.export-btn:disabled{opacity:.5; cursor:wait;}
+
 @media(max-width:1000px){
   .kpi-row{grid-template-columns:repeat(3,1fr);}
   .chart-row{grid-template-columns:1fr;}
@@ -216,6 +228,14 @@ table.sub tbody tr:hover{background:#F5F0E4;}
       <select id="filterRegion"><option value="">Semua Region</option></select>
     </div>
     <div class="field">
+      <label for="filterAsm">ASM</label>
+      <select id="filterAsm"><option value="">Semua ASM</option></select>
+    </div>
+    <div class="field">
+      <label for="filterRsm">RSM</label>
+      <select id="filterRsm"><option value="">Semua RSM</option></select>
+    </div>
+    <div class="field">
       <label for="filterDoi">Bracket DOI</label>
       <select id="filterDoi">
         <option value="">Semua Bracket</option>
@@ -237,16 +257,16 @@ table.sub tbody tr:hover{background:#F5F0E4;}
 
   <div class="chart-row">
     <div class="chart-card">
-      <h3>Distribusi Day of Inventory — Qty</h3>
-      <div class="chart-sub">Jumlah toko per rentang DOI (dihitung dari Stock Akhir ÷ Sellout/hari, basis Qty). Semua toko terfilter dihitung, tidak disampling.</div>
-      <canvas id="chartQty" height="230"></canvas>
-      <div class="legend-row" id="legendQty"></div>
+      <h3>Jumlah Toko per Bracket DOI — per ASM</h3>
+      <div class="chart-sub">Basis DOI mengikuti pilihan Qty/Value di atas. Semua toko terfilter dihitung, tidak disampling.</div>
+      <canvas id="chartAsm" height="230"></canvas>
+      <div class="legend-row" id="legendAsm"></div>
     </div>
     <div class="chart-card">
-      <h3>Distribusi Day of Inventory — Value (Rp)</h3>
-      <div class="chart-sub">Jumlah toko per rentang DOI (dihitung dari Stock Value ÷ Sellout/hari, basis Rp). Semua toko terfilter dihitung, tidak disampling.</div>
-      <canvas id="chartVal" height="230"></canvas>
-      <div class="legend-row" id="legendVal"></div>
+      <h3>Jumlah Toko per Bracket DOI — per RSM</h3>
+      <div class="chart-sub">Basis DOI mengikuti pilihan Qty/Value di atas. Semua toko terfilter dihitung, tidak disampling.</div>
+      <canvas id="chartRsm" height="230"></canvas>
+      <div class="legend-row" id="legendRsm"></div>
     </div>
   </div>
 
@@ -269,7 +289,8 @@ table.sub tbody tr:hover{background:#F5F0E4;}
           <tr>
             <th data-key="name">Toko <span class="arrow">▲▼</span></th>
             <th data-key="region">Region <span class="arrow">▲▼</span></th>
-            <th data-key="tl">Team Leader <span class="arrow">▲▼</span></th>
+            <th data-key="asm">ASM <span class="arrow">▲▼</span></th>
+            <th data-key="rsm">RSM <span class="arrow">▲▼</span></th>
             <th data-key="visits">Kunjungan <span class="arrow">▲▼</span></th>
             <th data-key="stockQty">Stock Akhir (Qty) <span class="arrow">▲▼</span></th>
             <th data-key="selloutPerDayQty">Sellout/Hari (Qty) <span class="arrow">▲▼</span></th>
@@ -303,6 +324,8 @@ table.sub tbody tr:hover{background:#F5F0E4;}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // No default data is embedded -- the dashboard starts empty and only fills in once
 // a user uploads an .xlsx file via the upload panel above.
@@ -394,10 +417,19 @@ function buildOutlets(raw){
 
 let outlets = [];
 
-const regionSel = document.getElementById('filterRegion');
-[...new Set(outlets.map(o=>o.region).filter(Boolean))].sort().forEach(r=>{
-  const opt = document.createElement('option'); opt.value=r; opt.textContent=r; regionSel.appendChild(opt);
-});
+function populateFilterOptions(){
+  const fill = (selectId, field, placeholder) => {
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = `<option value="">${placeholder}</option>`;
+    [...new Set(outlets.map(o=>o[field]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id')).forEach(v=>{
+      const opt = document.createElement('option'); opt.value=v; opt.textContent=v; sel.appendChild(opt);
+    });
+  };
+  fill('filterRegion', 'region', 'Semua Region');
+  fill('filterAsm', 'asm', 'Semua ASM');
+  fill('filterRsm', 'rsm', 'Semua RSM');
+}
+populateFilterOptions();
 
 function fmtInt(n){ if(n===null||n===undefined||!isFinite(n)) return '–'; return Math.round(n).toLocaleString('id-ID'); }
 function fmtRp(n){ if(n===null||n===undefined||!isFinite(n)) return '–'; return 'Rp' + Math.round(n).toLocaleString('id-ID'); }
@@ -417,7 +449,7 @@ function doiCell(doi, bracket){
   return `${fmtDoi(doi)} ${badgeHtml(bracket)}`;
 }
 
-let state = { search:'', region:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
+let state = { search:'', region:'', asm:'', rsm:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
 
 function applyFilters(){
   let list = outlets;
@@ -427,6 +459,12 @@ function applyFilters(){
   }
   if(state.region){
     list = list.filter(o=> o.region === state.region);
+  }
+  if(state.asm){
+    list = list.filter(o=> o.asm === state.asm);
+  }
+  if(state.rsm){
+    list = list.filter(o=> o.rsm === state.rsm);
   }
   if(state.doiFilter){
     const key = state.metric === 'qty' ? 'bracketQty' : 'bracketVal';
@@ -494,7 +532,7 @@ function renderTable(){
     const msg = outlets.length===0
       ? 'Belum ada data. Upload file Excel (.xlsx) lewat panel di atas untuk menampilkan dashboard.'
       : 'Tidak ada toko yang cocok dengan filter saat ini.';
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state">${msg}</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">${msg}</div></td></tr>`;
     return;
   }
 
@@ -504,7 +542,8 @@ function renderTable(){
       <tr class="outlet-row ${isExpanded?'expanded':''}" data-key="${encodeURIComponent(o.key)}">
         <td><span class="toko-name"><span class="chev">▶</span>${o.name}</span><br><span class="tag">${o.zona||''}</span></td>
         <td>${o.region||'–'}</td>
-        <td>${o.tl||'–'}</td>
+        <td>${o.asm||'–'}</td>
+        <td>${o.rsm||'–'}</td>
         <td class="mono">${fmtInt(o.visits)}</td>
         <td class="mono">${fmtInt(o.stockQty)}</td>
         <td class="mono">${o.selloutPerDayQty!==null?o.selloutPerDayQty.toLocaleString('id-ID',{maximumFractionDigits:1}):'–'}</td>
@@ -515,7 +554,7 @@ function renderTable(){
       </tr>`;
     let detailHtml = '';
     if(isExpanded){
-      detailHtml = `<tr class="detail-row"><td colspan="10"><div class="detail-wrap">${renderProductTable(o)}</div></td></tr>`;
+      detailHtml = `<tr class="detail-row"><td colspan="11"><div class="detail-wrap">${renderProductTable(o)}</div></td></tr>`;
     }
     return rowHtml + detailHtml;
   }).join('');
@@ -542,85 +581,123 @@ function renderProductTable(o){
       <td class="mono">${doiCell(p.doiVal, bracketOf(p.doiVal))}</td>
     </tr>`).join('');
   return `
-    <table class="sub">
-      <thead><tr>
-        <th>Produk</th><th>Sub Brand</th><th>Stock Akhir</th><th>Sellout/Hari</th><th>DOI Qty</th>
-        <th>Stock Value</th><th>Sellout/Hari (Rp)</th><th>DOI Value</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+    <div class="export-card" data-store="${encodeURIComponent(o.name)}">
+      <div class="export-toolbar">
+        <div class="export-info">${o.name}
+          <span class="export-sub">· ${o.region||'–'} · ASM: ${o.asm||'–'} · RSM: ${o.rsm||'–'} · Kunjungan: ${fmtInt(o.visits)}</span>
+        </div>
+        <div class="export-actions">
+          <button type="button" class="export-btn" onclick="event.stopPropagation(); exportDetail(this,'jpg')">⬇ Simpan JPG</button>
+          <button type="button" class="export-btn" onclick="event.stopPropagation(); exportDetail(this,'pdf')">⬇ Simpan PDF</button>
+        </div>
+      </div>
+      <table class="sub">
+        <thead><tr>
+          <th>Produk</th><th>Sub Brand</th><th>Stock Akhir</th><th>Sellout/Hari</th><th>DOI Qty</th>
+          <th>Stock Value</th><th>Sellout/Hari (Rp)</th><th>DOI Value</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 }
 
-let chartQty=null, chartVal=null;
+// Renders the export card to a canvas (hiding the toolbar buttons first) and downloads it as
+// either a JPG image or a single-page PDF sized to match the captured image.
+async function exportDetail(btnEl, type){
+  const card = btnEl.closest('.export-card');
+  if(!card) return;
+  const storeName = decodeURIComponent(card.getAttribute('data-store') || 'toko');
+  const fileBase = storeName.replace(/[^a-z0-9]+/gi,'_').toLowerCase().replace(/^_+|_+$/g,'') || 'toko';
+  const actions = card.querySelector('.export-actions');
+  const buttons = card.querySelectorAll('.export-btn');
+  buttons.forEach(b=>b.disabled = true);
+  const prevVisibility = actions.style.visibility;
+  actions.style.visibility = 'hidden';
+  try{
+    const canvas = await html2canvas(card, { backgroundColor:'#ffffff', scale:2 });
+    if(type === 'jpg'){
+      const link = document.createElement('a');
+      link.download = fileBase + '_doi.jpg';
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+    } else {
+      const { jsPDF } = window.jspdf;
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: canvas.width >= canvas.height ? 'landscape' : 'portrait',
+        unit: 'pt', format: [canvas.width, canvas.height]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(fileBase + '_doi.pdf');
+    }
+  } catch(err){
+    console.error(err);
+    alert('Gagal membuat file: ' + err.message);
+  } finally {
+    actions.style.visibility = prevVisibility || '';
+    buttons.forEach(b=>b.disabled = false);
+  }
+}
+
+let chartAsm=null, chartRsm=null;
 function buildLegend(elId){
   const el = document.getElementById(elId);
   el.innerHTML = Object.keys(LABELS).map(k=>`<div class="legend-item"><span class="legend-dot" style="background:${COLORS[k]}"></span>${LABELS[k]}</div>`).join('');
 }
-buildLegend('legendQty'); buildLegend('legendVal');
+buildLegend('legendAsm'); buildLegend('legendRsm');
 
-// Bin definition: [min, max, label, bracket-for-color]
-const BINS = [
-  {min:-Infinity, max:15,  label:'0–15',    bracket:'risk'},
-  {min:15,  max:25,  label:'15–25',   bracket:'risk'},
-  {min:25,  max:35,  label:'25–35',   bracket:'risk'},
-  {min:35,  max:45,  label:'35–45',   bracket:'optimal'},
-  {min:45,  max:60,  label:'45–60',   bracket:'over'},
-  {min:60,  max:90,  label:'60–90',   bracket:'over'},
-  {min:90,  max:150, label:'90–150',  bracket:'over'},
-  {min:150, max:Infinity, label:'>150 / tanpa sellout', bracket:'over'}
-];
-
-function buildHistogram(list, doiKey){
-  const counts = BINS.map(()=>0);
+// Groups filtered toko by a field (asm/rsm) and counts how many fall into each DOI bracket
+// (using whichever basis -- qty or value -- is currently selected in the metric toggle).
+function buildGroupBreakdown(list, groupField, bracketKey){
+  const groups = {};
   list.forEach(o=>{
-    let v = o[doiKey];
-    if(v===null || v===undefined) return; // toko tanpa kunjungan tercatat, tidak masuk hitungan grafik
-    if(!isFinite(v)) v = Infinity;
-    const i = BINS.findIndex(b => v >= b.min && v < b.max);
-    if(i>=0) counts[i]++;
+    const g = o[groupField] || 'Tidak diketahui';
+    if(!groups[g]) groups[g] = {risk:0, optimal:0, over:0};
+    const b = o[bracketKey];
+    if(b==='risk' || b==='optimal' || b==='over') groups[g][b]++;
   });
-  return counts;
+  const labels = Object.keys(groups).sort((a,b)=>a.localeCompare(b, 'id'));
+  return {
+    labels,
+    risk: labels.map(l=>groups[l].risk),
+    optimal: labels.map(l=>groups[l].optimal),
+    over: labels.map(l=>groups[l].over)
+  };
 }
 
 function renderCharts(list){
-  const countsQty = buildHistogram(list, 'doiQty');
-  const countsVal = buildHistogram(list, 'doiVal');
-  const labels = BINS.map(b=>b.label);
-  const colorsQty = BINS.map(b=>COLORS[b.bracket]);
+  const bracketKey = state.metric==='qty' ? 'bracketQty' : 'bracketVal';
+  const asmData = buildGroupBreakdown(list, 'asm', bracketKey);
+  const rsmData = buildGroupBreakdown(list, 'rsm', bracketKey);
 
-  const optsBase = (totalN)=>({
+  const makeDatasets = (d) => [
+    { label: LABELS.risk, data: d.risk, backgroundColor: COLORS.risk, borderRadius:3, maxBarThickness:28 },
+    { label: LABELS.optimal, data: d.optimal, backgroundColor: COLORS.optimal, borderRadius:3, maxBarThickness:28 },
+    { label: LABELS.over, data: d.over, backgroundColor: COLORS.over, borderRadius:3, maxBarThickness:28 }
+  ];
+
+  const opts = {
     responsive:true, maintainAspectRatio:false,
     plugins:{
       legend:{display:false},
-      tooltip:{ callbacks:{
-        title:(items)=>`DOI ${items[0].label} hari`,
-        label:(ctx)=>{
-          const pct = totalN ? ((ctx.raw/totalN)*100).toFixed(1) : '0';
-          return `${fmtInt(ctx.raw)} toko (${pct}%)`;
-        }
+      tooltip:{ mode:'index', intersect:false, callbacks:{
+        label:(ctx)=> `${ctx.dataset.label}: ${fmtInt(ctx.raw)} toko`
       }}
     },
     scales:{
-      x:{ title:{display:true, text:'Rentang DOI (hari)', font:{size:11}}, ticks:{font:{size:10.5}}, grid:{display:false} },
-      y:{ title:{display:true, text:'Jumlah toko', font:{size:11}}, ticks:{font:{size:10.5}, precision:0}, beginAtZero:true }
+      x:{ ticks:{font:{size:10.5}, autoSkip:false, maxRotation:40, minRotation:0}, grid:{display:false} },
+      y:{ beginAtZero:true, ticks:{precision:0, font:{size:10.5}}, title:{display:true, text:'Jumlah toko', font:{size:11}} }
     }
+  };
+
+  if(chartAsm) chartAsm.destroy();
+  if(chartRsm) chartRsm.destroy();
+
+  chartAsm = new Chart(document.getElementById('chartAsm'), {
+    type:'bar', data:{ labels: asmData.labels, datasets: makeDatasets(asmData) }, options: opts
   });
-
-  if(chartQty) chartQty.destroy();
-  if(chartVal) chartVal.destroy();
-
-  const totalQty = countsQty.reduce((a,b)=>a+b,0);
-  const totalVal = countsVal.reduce((a,b)=>a+b,0);
-
-  chartQty = new Chart(document.getElementById('chartQty'), {
-    type:'bar',
-    data:{ labels, datasets:[{ data:countsQty, backgroundColor:colorsQty, borderRadius:4, maxBarThickness:56 }] },
-    options: optsBase(totalQty)
-  });
-  chartVal = new Chart(document.getElementById('chartVal'), {
-    type:'bar',
-    data:{ labels, datasets:[{ data:countsVal, backgroundColor:colorsQty, borderRadius:4, maxBarThickness:56 }] },
-    options: optsBase(totalVal)
+  chartRsm = new Chart(document.getElementById('chartRsm'), {
+    type:'bar', data:{ labels: rsmData.labels, datasets: makeDatasets(rsmData) }, options: opts
   });
 }
 
@@ -642,6 +719,8 @@ document.getElementById('searchToko').addEventListener('input', (e)=>{
   searchTimer = setTimeout(()=>{ state.search = e.target.value; state.page=1; renderTable(); }, 180);
 });
 document.getElementById('filterRegion').addEventListener('change', (e)=>{ state.region = e.target.value; state.page=1; renderTable(); });
+document.getElementById('filterAsm').addEventListener('change', (e)=>{ state.asm = e.target.value; state.page=1; renderTable(); });
+document.getElementById('filterRsm').addEventListener('change', (e)=>{ state.rsm = e.target.value; state.page=1; renderTable(); });
 document.getElementById('filterDoi').addEventListener('change', (e)=>{ state.doiFilter = e.target.value; state.page=1; renderTable(); });
 document.getElementById('metricSeg').addEventListener('click', (e)=>{
   const btn = e.target.closest('button'); if(!btn) return;
@@ -652,9 +731,11 @@ document.getElementById('metricSeg').addEventListener('click', (e)=>{
   renderTable();
 });
 document.getElementById('resetBtn').addEventListener('click', ()=>{
-  state = { search:'', region:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
+  state = { search:'', region:'', asm:'', rsm:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
   document.getElementById('searchToko').value='';
   document.getElementById('filterRegion').value='';
+  document.getElementById('filterAsm').value='';
+  document.getElementById('filterRsm').value='';
   document.getElementById('filterDoi').value='';
   document.getElementById('pageSizeSel').value='50';
   document.querySelectorAll('#metricSeg button').forEach(b=>b.classList.remove('active'));
@@ -816,14 +897,13 @@ async function handleExcelUpload(file){
 
     outlets = result.map(e => finalizeOutlet(e.key, e.name, e.meta, e.visits, e.productsRaw));
 
-    const regionSel = document.getElementById('filterRegion');
-    regionSel.innerHTML = '<option value="">Semua Region</option>';
-    [...new Set(outlets.map(o=>o.region).filter(Boolean))].sort().forEach(r=>{
-      const opt = document.createElement('option'); opt.value=r; opt.textContent=r; regionSel.appendChild(opt);
-    });
+    populateFilterOptions();
 
-    state = { search:'', region:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
+    state = { search:'', region:'', asm:'', rsm:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
     document.getElementById('searchToko').value='';
+    document.getElementById('filterRegion').value='';
+    document.getElementById('filterAsm').value='';
+    document.getElementById('filterRsm').value='';
     document.getElementById('filterDoi').value='';
     document.getElementById('pageSizeSel').value='50';
     document.querySelectorAll('#metricSeg button').forEach(b=>b.classList.remove('active'));
