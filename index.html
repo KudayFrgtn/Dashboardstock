@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTI Stock Control — Day of Inventory Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2EFE8;
+  --surface:#FFFFFF;
+  --border:#E2DCCC;
+  --ink:#221C14;
+  --ink-soft:#6B6153;
+  --navy:#1E2A2F;
+  --navy-soft:#324349;
+  --amber:#C87F2A;
+  --amber-soft:#EFD9B8;
+  --red:#B14A3D;
+  --red-bg:#F6E4E0;
+  --green:#3F7A5C;
+  --green-bg:#E2EEE5;
+  --gold:#8A6D2F;
+  --gold-bg:#F1E7CC;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(30,42,47,.06), 0 4px 14px rgba(30,42,47,.05);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+.mono{font-family:'JetBrains Mono',monospace; font-variant-numeric: tabular-nums;}
+h1,h2,h3,.disp{font-family:'Sora',sans-serif;}
+
+.topbar{
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-soft) 100%);
+  color:#F2EFE8; padding:22px 28px; display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap;
+  border-bottom:4px solid var(--amber);
+}
+.topbar .brand-mark{ display:flex; align-items:center; gap:12px; }
+.topbar .mark{
+  width:40px;height:40px;border-radius:8px;background:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-family:'Sora';font-weight:800;color:var(--navy);font-size:16px;
+  flex-shrink:0;
+}
+.topbar h1{font-size:20px; margin:0; font-weight:700; letter-spacing:.2px;}
+.topbar p{margin:2px 0 0; font-size:12.5px; color:#C9CFC9; font-weight:500;}
+.period-chip{
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); padding:7px 14px; border-radius:99px;
+  font-size:12px; font-weight:600; letter-spacing:.3px; color:#E9E4D4;
+}
+
+.wrap{max-width:1400px; margin:0 auto; padding:22px 28px 60px;}
+
+.kpi-row{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:20px;}
+.kpi-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:14px 16px; box-shadow:var(--shadow);
+}
+.kpi-card .kpi-label{font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--ink-soft); font-weight:600; margin-bottom:6px;}
+.kpi-card .kpi-value{font-size:22px; font-weight:700; font-family:'Sora'; line-height:1.1;}
+.kpi-card .kpi-sub{font-size:11px; color:var(--ink-soft); margin-top:4px;}
+.kpi-card.risk .kpi-value{color:var(--green);}
+.kpi-card.optimal .kpi-value{color:var(--gold);}
+.kpi-card.over .kpi-value{color:var(--red);}
+.kpi-card.na .kpi-value{color:var(--ink-soft);}
+
+.controls{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:18px; box-shadow:var(--shadow);
+}
+.controls .field{display:flex; flex-direction:column; gap:4px;}
+.controls label{font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-soft); font-weight:600;}
+.controls input[type=text], .controls select{
+  border:1px solid var(--border); border-radius:7px; padding:8px 10px; font-size:13px; font-family:'Inter';
+  background:#FBFAF7; color:var(--ink); min-width:130px;
+}
+.controls input[type=text]{min-width:220px;}
+.controls input:focus, .controls select:focus{outline:2px solid var(--amber); outline-offset:1px;}
+.seg{display:flex; border:1px solid var(--border); border-radius:7px; overflow:hidden;}
+.seg button{
+  border:none; background:#FBFAF7; padding:8px 12px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink-soft);
+  font-family:'Inter'; border-right:1px solid var(--border);
+}
+.seg button:last-child{border-right:none;}
+.seg button.active{background:var(--navy); color:#fff;}
+.reset-btn{
+  margin-left:auto; background:none; border:1px solid var(--border); border-radius:7px; padding:8px 14px;
+  font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer;
+}
+.reset-btn:hover{border-color:var(--amber); color:var(--amber);}
+
+.chart-row{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;}
+.chart-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow);}
+.chart-card h3{margin:0 0 2px; font-size:14px; font-weight:700;}
+.chart-card .chart-sub{font-size:11.5px; color:var(--ink-soft); margin-bottom:10px;}
+.chart-card canvas{max-height:230px;}
+.legend-row{display:flex; gap:14px; margin-top:8px; flex-wrap:wrap;}
+.legend-item{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-soft); font-weight:600;}
+.legend-dot{width:9px;height:9px;border-radius:50%;}
+
+.table-panel{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow);}
+.table-head-bar{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--border);}
+.table-head-bar h3{margin:0; font-size:14px;}
+.table-head-bar .count{font-size:12px; color:var(--ink-soft); font-weight:500;}
+.tbl-scroll{overflow-x:auto;}
+table.data{width:100%; border-collapse:collapse; font-size:12.5px; min-width:1100px;}
+table.data thead th{
+  text-align:right; padding:9px 12px; background:#F7F4EE; border-bottom:2px solid var(--border);
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-soft); font-weight:700; cursor:pointer;
+  white-space:nowrap; position:sticky; top:0;
+}
+table.data thead th:first-child, table.data thead th:nth-child(2), table.data thead th:nth-child(3){text-align:left;}
+table.data thead th .arrow{font-size:9px; opacity:.5; margin-left:3px;}
+table.data thead th.sorted .arrow{opacity:1; color:var(--amber);}
+table.data tbody td{padding:9px 12px; border-bottom:1px solid #EFEAE0; text-align:right; white-space:nowrap;}
+table.data tbody td:first-child, table.data tbody td:nth-child(2), table.data tbody td:nth-child(3){text-align:left;}
+table.data tbody tr.outlet-row{cursor:pointer;}
+table.data tbody tr.outlet-row:hover{background:#FBF7EE;}
+table.data tbody tr.outlet-row.expanded{background:#F7F1E1;}
+.toko-name{font-weight:700; color:var(--navy);}
+.toko-name .chev{display:inline-block; margin-right:6px; transition:transform .15s; color:var(--amber); font-size:10px;}
+tr.expanded .toko-name .chev{transform:rotate(90deg);}
+.tag{font-size:10.5px; color:var(--ink-soft); font-weight:500;}
+.badge{ display:inline-block; padding:2px 8px; border-radius:99px; font-size:10.5px; font-weight:700; letter-spacing:.2px; }
+.badge.risk{background:var(--green-bg); color:var(--green);}
+.badge.optimal{background:var(--gold-bg); color:var(--gold);}
+.badge.over{background:var(--red-bg); color:var(--red);}
+.badge.na{background:#EEEBE3; color:var(--ink-soft);}
+.hint-text{color:var(--ink-soft); font-style:italic; font-weight:500; font-family:'Inter'; font-size:12px;}
+
+.detail-row td{padding:0; background:#FBF9F4;}
+.detail-wrap{padding:12px 16px 16px 40px;}
+table.sub{width:100%; border-collapse:collapse; font-size:11.8px;}
+table.sub thead th{text-align:right; padding:6px 10px; font-size:10px; text-transform:uppercase; color:var(--ink-soft); font-weight:700; border-bottom:1px solid var(--border);}
+table.sub thead th:first-child, table.sub thead th:nth-child(2){text-align:left;}
+table.sub tbody td{padding:6px 10px; text-align:right; border-bottom:1px solid #EFEAE0;}
+table.sub tbody td:first-child, table.sub tbody td:nth-child(2){text-align:left;}
+table.sub tbody tr:hover{background:#F5F0E4;}
+
+.pager{display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-top:1px solid var(--border); font-size:12.5px;}
+.pager .pg-btns button{
+  border:1px solid var(--border); background:#FBFAF7; border-radius:6px; padding:6px 12px; font-size:12px; font-weight:600;
+  cursor:pointer; color:var(--ink); margin-left:6px;
+}
+.pager .pg-btns button:disabled{opacity:.4; cursor:not-allowed;}
+.pager .pg-btns button:hover:not(:disabled){border-color:var(--amber);}
+
+.footnote{margin-top:18px; font-size:11.5px; color:var(--ink-soft); line-height:1.6; background:#FBF9F4; border:1px dashed var(--border); border-radius:var(--radius); padding:14px 16px;}
+.footnote b{color:var(--ink);}
+.footnote code{background:#EFEAE0; padding:1px 5px; border-radius:4px; font-family:'JetBrains Mono';}
+
+.upload-panel{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px;
+  display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:16px; box-shadow:var(--shadow); flex-wrap:wrap;
+}
+.upload-left .upload-title{font-size:12.5px; font-weight:700; color:var(--ink);}
+.upload-left .upload-desc{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+.upload-btn{
+  background:var(--amber); color:#fff; border:none; border-radius:8px; padding:10px 18px; font-size:12.5px; font-weight:700;
+  cursor:pointer; white-space:nowrap; font-family:'Inter'; transition:filter .15s;
+}
+.upload-btn:hover{filter:brightness(1.08);}
+.upload-status{
+  border-radius:8px; padding:10px 14px; font-size:12.5px; font-weight:600; margin-bottom:16px; display:flex; align-items:center; gap:8px;
+}
+.upload-status.success{background:var(--green-bg); color:var(--green); border:1px solid #cfe4d6;}
+.upload-status.error{background:var(--red-bg); color:var(--red); border:1px solid #ecd3ce;}
+.upload-status.loading{background:#EFEAE0; color:var(--ink-soft); border:1px solid var(--border);}
+
+.empty-state{padding:50px 20px; text-align:center; color:var(--ink-soft);}
+
+@media(max-width:1000px){
+  .kpi-row{grid-template-columns:repeat(3,1fr);}
+  .chart-row{grid-template-columns:1fr;}
+}
+@media(max-width:640px){
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .wrap{padding:16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand-mark">
+    <div class="mark">MTI</div>
+    <div>
+      <p>Monitoring stok &amp; kecepatan sellout per toko dan per produk</p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="upload-panel">
+    <div class="upload-left">
+      <div class="upload-title">Sumber Data</div>
+      <div class="upload-desc" id="uploadDesc">Belum ada data — upload file Excel (.xlsx) untuk mulai.</div>
+    </div>
+    <div>
+      <label class="upload-btn" for="excelUpload">Upload Data Excel Baru (.xlsx)</label>
+      <input type="file" id="excelUpload" accept=".xlsx,.xls" style="display:none;">
+    </div>
+  </div>
+  <div class="upload-status" id="uploadStatus" style="display:none;"></div>
+
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <div class="controls">
+    <div class="field">
+      <label for="searchToko">Cari Toko</label>
+      <input type="text" id="searchToko" placeholder="Ketik nama toko...">
+    </div>
+    <div class="field">
+      <label for="filterRegion">Region</label>
+      <select id="filterRegion"><option value="">Semua Region</option></select>
+    </div>
+    <div class="field">
+      <label for="filterDoi">Bracket DOI</label>
+      <select id="filterDoi">
+        <option value="">Semua Bracket</option>
+        <option value="risk">&lt; 35 hari (Rawan Stockout)</option>
+        <option value="optimal">35 – 45 hari (Optimal)</option>
+        <option value="over">&gt; 45 hari (Overstock)</option>
+        <option value="na">Stok belum dicek di kunjungan terakhir</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Basis Perhitungan DOI</label>
+      <div class="seg" id="metricSeg">
+        <button data-metric="qty" class="active">Qty</button>
+        <button data-metric="val">Value (Rp)</button>
+      </div>
+    </div>
+    <button class="reset-btn" id="resetBtn">Reset Filter</button>
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-card">
+      <h3>Distribusi Day of Inventory — Qty</h3>
+      <div class="chart-sub">Jumlah toko per rentang DOI (dihitung dari Stock Akhir ÷ Sellout/hari, basis Qty). Semua toko terfilter dihitung, tidak disampling.</div>
+      <canvas id="chartQty" height="230"></canvas>
+      <div class="legend-row" id="legendQty"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Distribusi Day of Inventory — Value (Rp)</h3>
+      <div class="chart-sub">Jumlah toko per rentang DOI (dihitung dari Stock Value ÷ Sellout/hari, basis Rp). Semua toko terfilter dihitung, tidak disampling.</div>
+      <canvas id="chartVal" height="230"></canvas>
+      <div class="legend-row" id="legendVal"></div>
+    </div>
+  </div>
+
+  <div class="table-panel">
+    <div class="table-head-bar">
+      <h3>Detail per Toko</h3>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div class="count" id="rowCount">0 toko</div>
+        <select id="pageSizeSel" style="border:1px solid var(--border); border-radius:7px; padding:6px 8px; font-size:12px; font-family:'Inter'; background:#FBFAF7;">
+          <option value="20">20 / halaman</option>
+          <option value="50">50 / halaman</option>
+          <option value="100">100 / halaman</option>
+          <option value="99999">Tampilkan semua</option>
+        </select>
+      </div>
+    </div>
+    <div class="tbl-scroll">
+      <table class="data" id="mainTable">
+        <thead>
+          <tr>
+            <th data-key="name">Toko <span class="arrow">▲▼</span></th>
+            <th data-key="region">Region <span class="arrow">▲▼</span></th>
+            <th data-key="tl">Team Leader <span class="arrow">▲▼</span></th>
+            <th data-key="visits">Kunjungan <span class="arrow">▲▼</span></th>
+            <th data-key="stockQty">Stock Akhir (Qty) <span class="arrow">▲▼</span></th>
+            <th data-key="selloutPerDayQty">Sellout/Hari (Qty) <span class="arrow">▲▼</span></th>
+            <th data-key="doiQty">DOI Qty <span class="arrow">▲▼</span></th>
+            <th data-key="stockVal">Stock Akhir (Rp) <span class="arrow">▲▼</span></th>
+            <th data-key="selloutPerDayVal">Sellout/Hari (Rp) <span class="arrow">▲▼</span></th>
+            <th data-key="doiVal">DOI Value <span class="arrow">▲▼</span></th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <div id="pagerInfo">Halaman 1</div>
+      <div class="pg-btns">
+        <button id="prevBtn">‹ Sebelumnya</button>
+        <button id="nextBtn">Berikutnya ›</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <b>Formula.</b> Sellout/Hari = (Total Sellout sebulan ÷ Jumlah Kunjungan dalam sebulan) × 70%. Day of Inventory (DOI) = Stock Akhir ÷ Sellout/Hari. Perhitungan yang sama berlaku untuk basis Rupiah (value), menggunakan Total Sellout Value dan Stock Akhir Value.
+    <br><b>Kunjungan</b> dihitung dari jumlah hari unik toko tersebut dikunjungi selama Juni 2026 (kolom <code>DATE</code>), dan dipakai sebagai basis kunjungan untuk seluruh produk di toko tersebut pada bulan itu.
+    <br><b>Stock Akhir</b> diambil dari <b>satu kunjungan terakhir</b> ke toko tersebut (1 Activity ID/kunjungan penuh), lalu dijumlahkan semua produk yang tercatat pada kunjungan itu. Produk yang pernah terjual bulan ini tapi tidak ikut dicek di kunjungan terakhir tidak dimasukkan ke Stock Akhir (karena stok terkininya tidak diketahui), meskipun sellout bulanannya tetap terhitung penuh untuk produk yang memang muncul di kunjungan terakhir.
+    <br><b>Toko dengan nama sama di area berbeda</b> dipisah otomatis menggunakan kombinasi Nama Toko + Region + Team Leader, karena Outlet Code di file sumber kosong. Pada data Juni 2026 ini ada 3 nama yang perlu dipisah: <code>GOTA</code> (EAST vs CENTRAL), <code>MANDALA</code> dan <code>SUMBER REJEKI</code> (beda Team Leader). Kalau ini sebenarnya cuma typo/salah input area, bukan toko yang benar-benar berbeda, datanya perlu dibetulkan di sumber sebelum diupload ulang.
+    <br><b>Bracket:</b> <span class="badge risk">&lt;35</span> rawan stockout, <span class="badge optimal">35–45</span> optimal, <span class="badge over">&gt;45</span> overstock. Toko/produk tanpa sellout pada periode ini otomatis masuk kategori overstock (DOI tak terhingga).
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// No default data is embedded -- the dashboard starts empty and only fills in once
+// a user uploads an .xlsx file via the upload panel above.
+
+const COLORS = { risk:'#3F7A5C', optimal:'#8A6D2F', over:'#B14A3D', na:'#9B9384' };
+const LABELS = { risk:'< 35 hari (Rawan Stockout)', optimal:'35–45 hari (Optimal)', over:'> 45 hari (Overstock)' };
+
+function bracketOf(doi){
+  if(doi === null || doi === undefined) return 'na';
+  if(!isFinite(doi)) return 'over';
+  if(doi < 35) return 'risk';
+  if(doi <= 45) return 'optimal';
+  return 'over';
+}
+
+function computeDoi(stock, selloutTotal, visits){
+  if(!visits || visits <= 0) return {perDay:null, doi:null};
+  const perDay = (selloutTotal / visits) * 0.7;
+  if(stock === null || stock === undefined) return {perDay, doi:null};
+  if(!perDay || perDay <= 0) return {perDay:perDay||0, doi:Infinity};
+  return {perDay, doi: stock / perDay};
+}
+
+// Turns a list of raw product rows ({name, sku, subbrand, sellQty, sellVal, stockQty, stockVal, price})
+// plus outlet meta into the final outlet object used everywhere in the UI.
+// stockQty/stockVal may be null when a product had sellout this month but wasn't part of the outlet's LAST visit
+// (so its current stock is unknown) -- this keeps sellout complete while keeping stock accurate to the latest check.
+function finalizeOutlet(key, name, meta, visits, productsRaw){
+  let stockQtySum=0, sellQtySum=0, stockValSum=0, sellValSum=0, anyStock=false;
+  const products = productsRaw.map(p=>{
+    if(p.stockQty !== null && p.stockQty !== undefined){ stockQtySum += p.stockQty; stockValSum += p.stockVal; anyStock = true; }
+    sellQtySum += p.sellQty; sellValSum += p.sellVal;
+    const dq = computeDoi(p.stockQty, p.sellQty, visits);
+    const dv = computeDoi(p.stockVal, p.sellVal, visits);
+    return {
+      name: p.name, sku: p.sku, subbrand: p.subbrand,
+      sellQty: p.sellQty, sellVal: p.sellVal, stockQty: p.stockQty, stockVal: p.stockVal, price: p.price,
+      selloutPerDayQty: dq.perDay, doiQty: dq.doi, selloutPerDayVal: dv.perDay, doiVal: dv.doi
+    };
+  });
+  const stockQtyFinal = anyStock ? stockQtySum : null;
+  const stockValFinal = anyStock ? stockValSum : null;
+  const dqO = computeDoi(stockQtyFinal, sellQtySum, visits);
+  const dvO = computeDoi(stockValFinal, sellValSum, visits);
+  products.sort((a,b)=> {
+    const av = a.doiQty===null? -1 : (a.doiQty===Infinity?1e9:a.doiQty);
+    const bv = b.doiQty===null? -1 : (b.doiQty===Infinity?1e9:b.doiQty);
+    return av - bv;
+  });
+  return {
+    key, name, code: meta.code, region: meta.region, tl: meta.tl, asm: meta.asm,
+    rsm: meta.rsm, zona: meta.zona, channel: meta.channel,
+    visits, products,
+    stockQty: stockQtyFinal, sellQtyTotal: sellQtySum, stockVal: stockValFinal, sellValTotal: sellValSum,
+    selloutPerDayQty: dqO.perDay, doiQty: dqO.doi,
+    selloutPerDayVal: dvO.perDay, doiVal: dvO.doi,
+    bracketQty: bracketOf(dqO.doi), bracketVal: bracketOf(dvO.doi)
+  };
+}
+
+// Decodes the compact {meta, outlets} shape (index-encoded strings) into the intermediate
+// {key, name, meta, visits, productsRaw} shape that finalizeOutlet expects.
+// Outlets are keyed by "Nama Toko + Region + Team Leader" (not name alone) because a handful of
+// store names are reused across different areas/TLs in the raw data -- keying on name alone would
+// silently merge two physically different stores into one row.
+function expandRaw(raw){
+  const META = raw.meta;
+  const out = [];
+  for(const key in raw.outlets){
+    const o = raw.outlets[key];
+    const [name, code, regionIdx, tlIdx, asmIdx, rsmIdx, zonaIdx, channelIdx, visits, prods] = o;
+    const meta = {
+      code, region: META.regions[regionIdx], tl: META.tls[tlIdx], asm: META.asms[asmIdx],
+      rsm: META.rsms[rsmIdx], zona: META.zonas[zonaIdx], channel: META.channels[channelIdx]
+    };
+    const productsRaw = prods.map(p=>{
+      const [pIdx, skuIdx, sbIdx, sq, sv, kq, kv, price] = p;
+      return { name: META.products[pIdx], sku: META.skus[skuIdx], subbrand: META.subbrands[sbIdx],
+        sellQty: sq, sellVal: sv, stockQty: (kq===null||kq===undefined)?null:kq, stockVal:(kv===null||kv===undefined)?null:kv, price };
+    });
+    out.push({key, name, meta, visits, productsRaw});
+  }
+  return out;
+}
+
+function buildOutlets(raw){
+  return expandRaw(raw).map(e => finalizeOutlet(e.key, e.name, e.meta, e.visits, e.productsRaw));
+}
+
+let outlets = [];
+
+const regionSel = document.getElementById('filterRegion');
+[...new Set(outlets.map(o=>o.region).filter(Boolean))].sort().forEach(r=>{
+  const opt = document.createElement('option'); opt.value=r; opt.textContent=r; regionSel.appendChild(opt);
+});
+
+function fmtInt(n){ if(n===null||n===undefined||!isFinite(n)) return '–'; return Math.round(n).toLocaleString('id-ID'); }
+function fmtRp(n){ if(n===null||n===undefined||!isFinite(n)) return '–'; return 'Rp' + Math.round(n).toLocaleString('id-ID'); }
+function fmtDoi(n){
+  if(n===null||n===undefined) return '–';
+  if(!isFinite(n)) return '∞';
+  return n.toLocaleString('id-ID', {maximumFractionDigits:1}) + ' hr';
+}
+function badgeHtml(bracket){
+  if(!bracket || bracket==='na') return '';
+  return `<span class="badge ${bracket}">${bracket==='risk'?'<35':bracket==='optimal'?'35–45':'>45'}</span>`;
+}
+// When DOI can't be computed (stock unknown because the product/store wasn't part of the
+// last visit), point the reader at the Value Stock column instead of showing a blank dash.
+function doiCell(doi, bracket){
+  if(doi===null||doi===undefined) return '<span class="hint-text">Lihat Value Stock</span>';
+  return `${fmtDoi(doi)} ${badgeHtml(bracket)}`;
+}
+
+let state = { search:'', region:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
+
+function applyFilters(){
+  let list = outlets;
+  if(state.search.trim()){
+    const q = state.search.trim().toLowerCase();
+    list = list.filter(o=> o.name.toLowerCase().includes(q));
+  }
+  if(state.region){
+    list = list.filter(o=> o.region === state.region);
+  }
+  if(state.doiFilter){
+    const key = state.metric === 'qty' ? 'bracketQty' : 'bracketVal';
+    list = list.filter(o=> o[key] === state.doiFilter);
+  }
+  return list;
+}
+
+function sortList(list){
+  const key = state.sortKey;
+  const dir = state.sortDir === 'asc' ? 1 : -1;
+  return [...list].sort((a,b)=>{
+    let va = a[key], vb = b[key];
+    if(va===Infinity) va = 1e12; if(vb===Infinity) vb = 1e12;
+    if(va===null||va===undefined) va = -1e12;
+    if(vb===null||vb===undefined) vb = -1e12;
+    if(typeof va === 'string') return va.localeCompare(vb) * dir;
+    return (va - vb) * dir;
+  });
+}
+
+function renderKpis(list){
+  const kpiRow = document.getElementById('kpiRow');
+  const totalToko = list.length;
+  const totalCombo = list.reduce((s,o)=>s+o.products.length,0);
+  const metric = state.metric;
+  const doiKey = metric==='qty' ? 'doiQty' : 'doiVal';
+  const finite = list.map(o=>o[doiKey]).filter(v=>v!==null && isFinite(v));
+  const avgDoi = finite.length ? finite.reduce((a,b)=>a+b,0)/finite.length : null;
+  const bracketKey = metric==='qty' ? 'bracketQty' : 'bracketVal';
+  const cRisk = list.filter(o=>o[bracketKey]==='risk').length;
+  const cOpt = list.filter(o=>o[bracketKey]==='optimal').length;
+  const cOver = list.filter(o=>o[bracketKey]==='over').length;
+  const cNa = list.filter(o=>o[bracketKey]==='na').length;
+
+  kpiRow.innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Toko</div><div class="kpi-value mono">${fmtInt(totalToko)}</div><div class="kpi-sub">terfilter</div></div>
+    <div class="kpi-card"><div class="kpi-label">Kombinasi Toko × Produk</div><div class="kpi-value mono">${fmtInt(totalCombo)}</div><div class="kpi-sub">baris data</div></div>
+    <div class="kpi-card"><div class="kpi-label">Rata-rata DOI (${metric==='qty'?'Qty':'Value'})</div><div class="kpi-value mono">${avgDoi!==null?avgDoi.toLocaleString('id-ID',{maximumFractionDigits:1}):'–'} <span style="font-size:12px;font-weight:500;">hr</span></div><div class="kpi-sub">toko dgn sellout > 0</div></div>
+    <div class="kpi-card risk"><div class="kpi-label">Rawan Stockout</div><div class="kpi-value mono">${fmtInt(cRisk)}</div><div class="kpi-sub">&lt; 35 hari</div></div>
+    <div class="kpi-card optimal"><div class="kpi-label">Optimal</div><div class="kpi-value mono">${fmtInt(cOpt)}</div><div class="kpi-sub">35–45 hari</div></div>
+    <div class="kpi-card over"><div class="kpi-label">Overstock</div><div class="kpi-value mono">${fmtInt(cOver)}</div><div class="kpi-sub">&gt; 45 hari</div></div>
+    <div class="kpi-card na"><div class="kpi-label">Belum Dicek</div><div class="kpi-value mono">${fmtInt(cNa)}</div><div class="kpi-sub">stok blm ada di kunj. terakhir</div></div>
+  `;
+}
+
+function renderTable(){
+  const filtered = applyFilters();
+  const sorted = sortList(filtered);
+  renderKpis(filtered);
+  renderCharts(filtered);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / state.pageSize));
+  if(state.page > totalPages) state.page = totalPages;
+  const startIdx = (state.page-1)*state.pageSize;
+  const pageItems = sorted.slice(startIdx, startIdx+state.pageSize);
+
+  document.getElementById('rowCount').textContent = `${fmtInt(sorted.length)} toko`;
+  document.getElementById('pagerInfo').textContent = sorted.length ? `Halaman ${state.page} dari ${totalPages} · menampilkan ${pageItems.length} dari ${sorted.length}` : 'Tidak ada data';
+  document.getElementById('prevBtn').disabled = state.page<=1;
+  document.getElementById('nextBtn').disabled = state.page>=totalPages;
+
+  const tbody = document.getElementById('tblBody');
+  if(pageItems.length===0){
+    const msg = outlets.length===0
+      ? 'Belum ada data. Upload file Excel (.xlsx) lewat panel di atas untuk menampilkan dashboard.'
+      : 'Tidak ada toko yang cocok dengan filter saat ini.';
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state">${msg}</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = pageItems.map(o=>{
+    const isExpanded = state.expanded.has(o.key);
+    const rowHtml = `
+      <tr class="outlet-row ${isExpanded?'expanded':''}" data-key="${encodeURIComponent(o.key)}">
+        <td><span class="toko-name"><span class="chev">▶</span>${o.name}</span><br><span class="tag">${o.zona||''}</span></td>
+        <td>${o.region||'–'}</td>
+        <td>${o.tl||'–'}</td>
+        <td class="mono">${fmtInt(o.visits)}</td>
+        <td class="mono">${fmtInt(o.stockQty)}</td>
+        <td class="mono">${o.selloutPerDayQty!==null?o.selloutPerDayQty.toLocaleString('id-ID',{maximumFractionDigits:1}):'–'}</td>
+        <td class="mono">${doiCell(o.doiQty, o.bracketQty)}</td>
+        <td class="mono">${fmtRp(o.stockVal)}</td>
+        <td class="mono">${o.selloutPerDayVal!==null?fmtRp(o.selloutPerDayVal):'–'}</td>
+        <td class="mono">${doiCell(o.doiVal, o.bracketVal)}</td>
+      </tr>`;
+    let detailHtml = '';
+    if(isExpanded){
+      detailHtml = `<tr class="detail-row"><td colspan="10"><div class="detail-wrap">${renderProductTable(o)}</div></td></tr>`;
+    }
+    return rowHtml + detailHtml;
+  }).join('');
+
+  tbody.querySelectorAll('tr.outlet-row').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const key = decodeURIComponent(tr.getAttribute('data-key'));
+      if(state.expanded.has(key)) state.expanded.delete(key); else state.expanded.add(key);
+      renderTable();
+    });
+  });
+}
+
+function renderProductTable(o){
+  const rows = o.products.map(p=>`
+    <tr>
+      <td>${p.name}</td>
+      <td class="tag">${p.subbrand||'–'}</td>
+      <td class="mono">${fmtInt(p.stockQty)}</td>
+      <td class="mono">${p.selloutPerDayQty!==null?p.selloutPerDayQty.toLocaleString('id-ID',{maximumFractionDigits:1}):'–'}</td>
+      <td class="mono">${doiCell(p.doiQty, bracketOf(p.doiQty))}</td>
+      <td class="mono">${fmtRp(p.stockVal)}</td>
+      <td class="mono">${p.selloutPerDayVal!==null?fmtRp(p.selloutPerDayVal):'–'}</td>
+      <td class="mono">${doiCell(p.doiVal, bracketOf(p.doiVal))}</td>
+    </tr>`).join('');
+  return `
+    <table class="sub">
+      <thead><tr>
+        <th>Produk</th><th>Sub Brand</th><th>Stock Akhir</th><th>Sellout/Hari</th><th>DOI Qty</th>
+        <th>Stock Value</th><th>Sellout/Hari (Rp)</th><th>DOI Value</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+let chartQty=null, chartVal=null;
+function buildLegend(elId){
+  const el = document.getElementById(elId);
+  el.innerHTML = Object.keys(LABELS).map(k=>`<div class="legend-item"><span class="legend-dot" style="background:${COLORS[k]}"></span>${LABELS[k]}</div>`).join('');
+}
+buildLegend('legendQty'); buildLegend('legendVal');
+
+// Bin definition: [min, max, label, bracket-for-color]
+const BINS = [
+  {min:-Infinity, max:15,  label:'0–15',    bracket:'risk'},
+  {min:15,  max:25,  label:'15–25',   bracket:'risk'},
+  {min:25,  max:35,  label:'25–35',   bracket:'risk'},
+  {min:35,  max:45,  label:'35–45',   bracket:'optimal'},
+  {min:45,  max:60,  label:'45–60',   bracket:'over'},
+  {min:60,  max:90,  label:'60–90',   bracket:'over'},
+  {min:90,  max:150, label:'90–150',  bracket:'over'},
+  {min:150, max:Infinity, label:'>150 / tanpa sellout', bracket:'over'}
+];
+
+function buildHistogram(list, doiKey){
+  const counts = BINS.map(()=>0);
+  list.forEach(o=>{
+    let v = o[doiKey];
+    if(v===null || v===undefined) return; // toko tanpa kunjungan tercatat, tidak masuk hitungan grafik
+    if(!isFinite(v)) v = Infinity;
+    const i = BINS.findIndex(b => v >= b.min && v < b.max);
+    if(i>=0) counts[i]++;
+  });
+  return counts;
+}
+
+function renderCharts(list){
+  const countsQty = buildHistogram(list, 'doiQty');
+  const countsVal = buildHistogram(list, 'doiVal');
+  const labels = BINS.map(b=>b.label);
+  const colorsQty = BINS.map(b=>COLORS[b.bracket]);
+
+  const optsBase = (totalN)=>({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{ callbacks:{
+        title:(items)=>`DOI ${items[0].label} hari`,
+        label:(ctx)=>{
+          const pct = totalN ? ((ctx.raw/totalN)*100).toFixed(1) : '0';
+          return `${fmtInt(ctx.raw)} toko (${pct}%)`;
+        }
+      }}
+    },
+    scales:{
+      x:{ title:{display:true, text:'Rentang DOI (hari)', font:{size:11}}, ticks:{font:{size:10.5}}, grid:{display:false} },
+      y:{ title:{display:true, text:'Jumlah toko', font:{size:11}}, ticks:{font:{size:10.5}, precision:0}, beginAtZero:true }
+    }
+  });
+
+  if(chartQty) chartQty.destroy();
+  if(chartVal) chartVal.destroy();
+
+  const totalQty = countsQty.reduce((a,b)=>a+b,0);
+  const totalVal = countsVal.reduce((a,b)=>a+b,0);
+
+  chartQty = new Chart(document.getElementById('chartQty'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data:countsQty, backgroundColor:colorsQty, borderRadius:4, maxBarThickness:56 }] },
+    options: optsBase(totalQty)
+  });
+  chartVal = new Chart(document.getElementById('chartVal'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data:countsVal, backgroundColor:colorsQty, borderRadius:4, maxBarThickness:56 }] },
+    options: optsBase(totalVal)
+  });
+}
+
+document.querySelectorAll('#mainTable thead th').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.getAttribute('data-key');
+    if(state.sortKey === key){ state.sortDir = state.sortDir==='asc'?'desc':'asc'; }
+    else { state.sortKey = key; state.sortDir = 'asc'; }
+    document.querySelectorAll('#mainTable thead th').forEach(t=>t.classList.remove('sorted'));
+    th.classList.add('sorted');
+    state.page = 1;
+    renderTable();
+  });
+});
+
+let searchTimer;
+document.getElementById('searchToko').addEventListener('input', (e)=>{
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>{ state.search = e.target.value; state.page=1; renderTable(); }, 180);
+});
+document.getElementById('filterRegion').addEventListener('change', (e)=>{ state.region = e.target.value; state.page=1; renderTable(); });
+document.getElementById('filterDoi').addEventListener('change', (e)=>{ state.doiFilter = e.target.value; state.page=1; renderTable(); });
+document.getElementById('metricSeg').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#metricSeg button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  state.metric = btn.getAttribute('data-metric');
+  state.sortKey = state.metric==='qty' ? 'doiQty' : 'doiVal';
+  renderTable();
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  state = { search:'', region:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
+  document.getElementById('searchToko').value='';
+  document.getElementById('filterRegion').value='';
+  document.getElementById('filterDoi').value='';
+  document.getElementById('pageSizeSel').value='50';
+  document.querySelectorAll('#metricSeg button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('#metricSeg button[data-metric="qty"]').classList.add('active');
+  renderTable();
+});
+document.getElementById('prevBtn').addEventListener('click', ()=>{ if(state.page>1){state.page--; renderTable();} });
+document.getElementById('nextBtn').addEventListener('click', ()=>{ state.page++; renderTable(); });
+document.getElementById('pageSizeSel').addEventListener('change', (e)=>{ state.pageSize = parseInt(e.target.value,10); state.page = 1; renderTable(); });
+
+// ---- Excel upload: parse a raw .xlsx in-browser into the same shape expandRaw() produces ----
+const REQUIRED_HEADERS = ['Outlet Name','Product Name','Stock Akhir','Sell Out','DATE','Activity Date',
+  'Activity ID','TEAM LEADER','REGION','ASM / KAM','RSM','SKU','Sub Brand','Zona','Price',
+  'Value Per Stock','Value Per Sellout'];
+
+function toJsDate(v){
+  if(v instanceof Date) return v;
+  if(typeof v === 'number' && window.XLSX && XLSX.SSF){
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d) return new Date(Date.UTC(d.y, d.m-1, d.d, d.H||0, d.M||0, Math.floor(d.S||0)));
+  }
+  return null;
+}
+
+function parseWorkbookToOutlets(workbook){
+  const sheetName = workbook.SheetNames.find(n=>/stock/i.test(n)) || workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:null});
+  if(!rows || rows.length < 2) throw new Error('File tidak memiliki baris data.');
+
+  const header = rows[0].map(h => (h===null||h===undefined) ? '' : String(h).trim());
+  const idx = {};
+  header.forEach((h,i)=>{ if(h && !(h in idx)) idx[h]=i; });
+
+  const missing = REQUIRED_HEADERS.filter(k=>!(k in idx));
+  if(missing.length){
+    throw new Error('Kolom berikut tidak ditemukan: ' + missing.join(', ') + '. Pastikan format kolom sama seperti file MTI asli.');
+  }
+
+  const outletInfo = {};        // outletKey -> meta (incl. display name)
+  const outletVisitDates = {};
+  const comboSelloutQty = {};
+  const comboSelloutVal = {};
+  const comboMeta = {};
+  const outletProductsSeen = {};
+  const outletVisits = {};
+  const OSEP = '\u241E';  // separates name|region|tl within an outlet key
+  const PSEP = '\u241F';  // separates outletKey from product name
+
+  for(let r=1; r<rows.length; r++){
+    const row = rows[r];
+    if(!row) continue;
+    const outletNameRaw = row[idx['Outlet Name']];
+    if(!outletNameRaw) continue;
+    const outletName = String(outletNameRaw).trim();
+    const region = String(row[idx['REGION']] ?? '').trim();
+    const tl = String(row[idx['TEAM LEADER']] ?? '').trim();
+    // Keyed by name+region+TL, not name alone: a handful of store names repeat across different
+    // areas/team leaders in real MTI exports, and keying on name alone would merge distinct stores.
+    const outletKey = outletName + OSEP + region + OSEP + tl;
+
+    const product = String(row[idx['Product Name']] ?? '').trim();
+    const date = toJsDate(row[idx['DATE']]);
+    const actDate = toJsDate(row[idx['Activity Date']]);
+    const checkin = idx['Checkin']!==undefined ? toJsDate(row[idx['Checkin']]) : null;
+    const ts = actDate || checkin || date;
+    const actId = row[idx['Activity ID']];
+    const sellout = Number(row[idx['Sell Out']]) || 0;
+    const stockAkhir = Number(row[idx['Stock Akhir']]) || 0;
+    const price = Number(row[idx['Price']]) || 0;
+    const valSellout = Number(row[idx['Value Per Sellout']]) || 0;
+    const valStock = Number(row[idx['Value Per Stock']]) || 0;
+
+    if(!outletInfo[outletKey]){
+      outletInfo[outletKey] = {
+        name: outletName,
+        code: idx['Outlet Code']!==undefined ? (row[idx['Outlet Code']] ?? '') : '',
+        region, tl,
+        asm: row[idx['ASM / KAM']] ?? '', rsm: row[idx['RSM']] ?? '',
+        zona: row[idx['Zona']] ?? '', channel: idx['Channel Name']!==undefined ? (row[idx['Channel Name']] ?? '') : ''
+      };
+    }
+    if(date){
+      (outletVisitDates[outletKey] || (outletVisitDates[outletKey]=new Set())).add(date.toDateString());
+    }
+
+    const comboKey = outletKey + PSEP + product;
+    comboSelloutQty[comboKey] = (comboSelloutQty[comboKey]||0) + sellout;
+    comboSelloutVal[comboKey] = (comboSelloutVal[comboKey]||0) + valSellout;
+    comboMeta[comboKey] = { sku: row[idx['SKU']] ?? '', subbrand: row[idx['Sub Brand']] ?? '' };
+    (outletProductsSeen[outletKey] || (outletProductsSeen[outletKey]=new Set())).add(product);
+
+    if(actId && ts){
+      const visits = outletVisits[outletKey] || (outletVisits[outletKey]={});
+      const v = visits[actId] || (visits[actId] = {ts, rows:{}});
+      if(ts > v.ts) v.ts = ts;
+      v.rows[product] = [stockAkhir, valStock, price];
+    }
+  }
+
+  const result = [];
+  let minDate=null, maxDate=null;
+  for(const outletKey in outletInfo){
+    const visitDates = outletVisitDates[outletKey] || new Set();
+    visitDates.forEach(dstr=>{ const d=new Date(dstr); if(!minDate||d<minDate) minDate=d; if(!maxDate||d>maxDate) maxDate=d; });
+    const visitsCount = visitDates.size;
+    const visits = outletVisits[outletKey] || {};
+    let lastActId = null, lastTs = null;
+    for(const aid in visits){
+      if(lastTs===null || visits[aid].ts > lastTs){ lastTs = visits[aid].ts; lastActId = aid; }
+    }
+    const lastRows = lastActId ? visits[lastActId].rows : {};
+    const allProducts = outletProductsSeen[outletKey] || new Set();
+    const productsRaw = [];
+    allProducts.forEach(product=>{
+      const comboKey = outletKey + PSEP + product;
+      const sq = comboSelloutQty[comboKey] || 0;
+      const sv = comboSelloutVal[comboKey] || 0;
+      const meta = comboMeta[comboKey] || {sku:'', subbrand:''};
+      let stockQty=null, stockVal=null, price=0;
+      if(lastRows[product]){ [stockQty, stockVal, price] = lastRows[product]; }
+      productsRaw.push({ name:product, sku:meta.sku, subbrand:meta.subbrand, sellQty:sq, sellVal:sv, stockQty, stockVal, price });
+    });
+    if(productsRaw.length){
+      const meta = outletInfo[outletKey];
+      result.push({ key: outletKey, name: meta.name, meta, visits: visitsCount, productsRaw });
+    }
+  }
+
+  return { result, minDate, maxDate };
+}
+
+function showUploadStatus(msg, type){
+  const el = document.getElementById('uploadStatus');
+  el.style.display = 'flex';
+  el.className = 'upload-status' + (type ? ' ' + type : '');
+  el.textContent = msg;
+}
+
+function formatPeriodLabel(minDate, maxDate){
+  if(!minDate || !maxDate) return 'Periode: –';
+  const bulanId = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const sameMonth = minDate.getMonth()===maxDate.getMonth() && minDate.getFullYear()===maxDate.getFullYear();
+  if(sameMonth){
+    const namaBulanPanjang = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    return `Periode: ${namaBulanPanjang[minDate.getMonth()]} ${minDate.getFullYear()}`;
+  }
+  return `Periode: ${minDate.getDate()} ${bulanId[minDate.getMonth()]} ${minDate.getFullYear()} – ${maxDate.getDate()} ${bulanId[maxDate.getMonth()]} ${maxDate.getFullYear()}`;
+}
+
+async function handleExcelUpload(file){
+  showUploadStatus('Memproses "' + file.name + '"...', 'loading');
+  try{
+    await new Promise(res=>setTimeout(res, 30)); // let the loading state paint before the heavy work
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    const {result, minDate, maxDate} = parseWorkbookToOutlets(wb);
+    if(result.length === 0) throw new Error('Tidak ada baris data toko yang bisa dibaca dari file ini.');
+
+    outlets = result.map(e => finalizeOutlet(e.key, e.name, e.meta, e.visits, e.productsRaw));
+
+    const regionSel = document.getElementById('filterRegion');
+    regionSel.innerHTML = '<option value="">Semua Region</option>';
+    [...new Set(outlets.map(o=>o.region).filter(Boolean))].sort().forEach(r=>{
+      const opt = document.createElement('option'); opt.value=r; opt.textContent=r; regionSel.appendChild(opt);
+    });
+
+    state = { search:'', region:'', doiFilter:'', metric:'qty', sortKey:'doiQty', sortDir:'asc', page:1, pageSize:50, expanded:new Set() };
+    document.getElementById('searchToko').value='';
+    document.getElementById('filterDoi').value='';
+    document.getElementById('pageSizeSel').value='50';
+    document.querySelectorAll('#metricSeg button').forEach(b=>b.classList.remove('active'));
+    document.querySelector('#metricSeg button[data-metric="qty"]').classList.add('active');
+
+    document.getElementById('uploadDesc').textContent = `Data aktif: ${file.name} · ${outlets.length} toko · ${formatPeriodLabel(minDate, maxDate)}`;
+
+    renderTable();
+    showUploadStatus(`Berhasil memuat ${fmtInt(outlets.length)} toko dari "${file.name}".`, 'success');
+  } catch(err){
+    console.error(err);
+    showUploadStatus('Gagal memproses file: ' + err.message, 'error');
+  }
+}
+
+document.getElementById('excelUpload').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) handleExcelUpload(file);
+  e.target.value = '';
+});
+
+document.querySelector('#mainTable thead th[data-key="doiQty"]').classList.add('sorted');
+
+renderTable();
+</script>
+</body>
+</html>
